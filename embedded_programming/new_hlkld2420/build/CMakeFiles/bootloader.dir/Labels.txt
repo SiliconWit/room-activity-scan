@@ -1,0 +1,13 @@
+# Target labels
+ bootloader
+# Source files and their labels
+/home/marcus/Code/room-activity-scan/embedded_programming/new_hlkld2420/build/CMakeFiles/bootloader
+/home/marcus/Code/room-activity-scan/embedded_programming/new_hlkld2420/build/CMakeFiles/bootloader.rule
+/home/marcus/Code/room-activity-scan/embedded_programming/new_hlkld2420/build/CMakeFiles/bootloader-complete.rule
+/home/marcus/Code/room-activity-scan/embedded_programming/new_hlkld2420/build/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule
+/home/marcus/Code/room-activity-scan/embedded_programming/new_hlkld2420/build/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule
+/home/marcus/Code/room-activity-scan/embedded_programming/new_hlkld2420/build/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule
+/home/marcus/Code/room-activity-scan/embedded_programming/new_hlkld2420/build/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule
+/home/marcus/Code/room-activity-scan/embedded_programming/new_hlkld2420/build/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule
+/home/marcus/Code/room-activity-scan/embedded_programming/new_hlkld2420/build/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule
+/home/marcus/Code/room-activity-scan/embedded_programming/new_hlkld2420/build/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule
