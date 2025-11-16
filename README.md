@@ -4,6 +4,26 @@ An embedded system for monitoring room activity with potential automation capabi
 
 ---
 
+## 📁 Project Structure
+
+```
+room-activity-scan/
+├── embedded_programming/           # Embedded firmware projects
+│   ├── activity_monitor/           # Main room activity monitoring firmware
+│   │   ├── main/
+│   │   │   ├── main.c              # Main application code (HLK-LD2420 sensor)
+│   │   │   └── CMakeLists.txt
+│   │   └── CMakeLists.txt          # Project configuration
+│   └── new_hlkld2420/              # Original test program (legacy)
+├── docs/                           # Documentation (MDX files for website)
+├── images/                         # Project images and diagrams
+├── README.md                       # Project overview and setup guide
+├── LICENSE                         # MIT License
+└── .gitignore                      # Git ignore rules
+```
+
+---
+
 ## 🧠 Project Goals
 
 - Detect **human presence** and **motion** reliably using radar and motion sensors.
@@ -164,7 +184,7 @@ idf.py -p /dev/ttyUSB0 monitor
 ## 👨‍💻 Author
 
 **Lawrence Langat**  
-Electronics and Firmware Developer  
+Mechatronic Engineer Intern  
 [@lawrenceegr](https://github.com/lawrenceegr)
 
 ---
