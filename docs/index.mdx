@@ -1,0 +1,313 @@
+---
+title: Room Activity Scanner
+description: IoT-based health and wellness monitoring system for intelligent room activity detection and environmental sensing
+---
+
+import { Card, CardGrid, Tabs, TabItem, Badge } from '@astrojs/starlight/components';
+
+<Badge text="Product Development" variant="tip" size="large" />
+<Badge text="IoT System" variant="note" size="large" />
+<Badge text="Health Monitoring" variant="success" size="large" />
+<Badge text="ESP32-S3" variant="caution" size="large" />
+
+## Overview
+
+The **Room Activity Scanner** is an embedded IoT solution designed for **health and wellness monitoring** through intelligent room activity detection and comprehensive environmental sensing. Built on the ESP32-S3 microcontroller platform, this system provides real-time monitoring of human presence, motion, air quality, and environmental conditions with a focus on low-cost implementation and power efficiency.
+
+<CardGrid>
+  <Card title="Multi-Sensor Integration" icon="seti:config">
+    Combines mmWave radar, Doppler motion detection, environmental sensors, and sound monitoring for comprehensive room activity analysis.
+  </Card>
+  <Card title="Real-Time Data Streaming" icon="rss">
+    MQTT-based communication enables instant data transmission to cloud platforms and automation systems for live monitoring and alerts.
+  </Card>
+  <Card title="Room Automation Control" icon="setting">
+    Integrated relay control system enables automated response to room conditions, controlling lights, fans, and other appliances.
+  </Card>
+  <Card title="Low-Power Design" icon="approve-check">
+    Optimized firmware architecture and power management ensure efficient operation suitable for continuous monitoring applications.
+  </Card>
+</CardGrid>
+
+---
+
+## Key Features
+
+<Tabs>
+  <TabItem label="Presence & Motion Detection">
+
+### Advanced Human Presence Sensing
+
+- **mmWave Radar (HLK-LD2420)**: Detects human presence even when stationary, eliminating the blind spots of traditional PIR sensors
+- **Doppler Motion Sensor (RCWL-0516)**: Provides 360° omnidirectional motion detection through obstacles
+- **Dual-Sensor Approach**: Combines static presence and motion detection for comprehensive activity monitoring
+- **Range & Accuracy**: Adjustable detection range from 0.5m to 5m with distance measurement capabilities
+- **Applications**: Elderly care monitoring, security systems, occupancy-based automation
+
+  </TabItem>
+
+  <TabItem label="Environmental Monitoring">
+
+### Comprehensive Air Quality & Climate Sensing
+
+- **Temperature & Pressure (BMP280)**: High-precision environmental monitoring with ±1°C and ±1hPa accuracy
+- **Air Quality (MQ-2)**: Detects combustible gases, LPG, smoke, and potentially harmful air contaminants
+- **Sound Level Monitoring (INMP441)**: MEMS microphone for ambient noise analysis and sleep quality assessment
+- **Real-Time Alerts**: Configurable thresholds for environmental conditions trigger automated responses
+- **Applications**: Indoor air quality management, comfort optimization, safety monitoring
+
+  </TabItem>
+
+  <TabItem label="Automation & Control">
+
+### Intelligent Room Automation
+
+- **Relay Control**: Controls up to 10A @ 250V AC loads including lights, fans, and appliances
+- **MQTT Command Interface**: Remote control through standardized MQTT protocol
+- **Automated Responses**: Rule-based automation triggered by sensor data (e.g., turn on fan when temperature exceeds threshold)
+- **Manual Override**: Supports both automatic and manual control modes
+- **Safety Features**: Configurable safety interlocks prevent unsafe operations
+- **Applications**: Energy optimization, comfort automation, accessibility solutions
+
+  </TabItem>
+</Tabs>
+
+---
+
+## System Architecture
+
+### Architecture Overview
+
+The Room Activity Scanner implements a modular, layered architecture for sensor data acquisition, processing, and communication:
+
+```
+[Sensor Layer] → [Data Acquisition] → [Processing] → [MQTT Communication] → [Cloud/Dashboard]
+```
+
+### System Flowchart
+
+![System Architecture Flowchart](../images/flowchart.png)
+
+The system operates through a continuous sensing-processing-communication cycle, enabling real-time monitoring and automated responses to room conditions.
+
+### Core Components
+
+| Component | Description | Role |
+|-----------|-------------|------|
+| **YD-ESP32-S3** | Dual-core Xtensa LX7 @ 240MHz, 512KB SRAM, 16MB Flash | Main processing unit, sensor interface, WiFi/MQTT communication |
+| **HLK-LD2420** | 24GHz mmWave radar sensor | Presence detection via UART interface |
+| **RCWL-0516** | Doppler radar module | Motion detection via GPIO |
+| **BMP280** | Environmental sensor | Temperature and pressure via I2C |
+| **MQ-2** | Gas sensor | Air quality monitoring via ADC |
+| **INMP441** | MEMS microphone | Sound level monitoring via I2S |
+| **Relay Module** | Electromechanical relay | Device control via GPIO |
+| **MQTT Broker** | Message broker (Mosquitto/Cloud) | Real-time data distribution and command handling |
+
+---
+
+## Use Cases & Applications
+
+### Health and Wellness Monitoring
+
+<CardGrid>
+  <Card title="Elderly Care & Safety" icon="heart">
+    Non-intrusive monitoring for seniors living independently. Detects presence, tracks activity patterns, and generates alerts for unusual behavior without compromising privacy.
+  </Card>
+  <Card title="Sleep Quality Analysis" icon="moon">
+    Monitors motion, sound levels, and environmental conditions to assess sleep quality and identify disturbances for health optimization.
+  </Card>
+  <Card title="Healthcare Facilities" icon="seti:config">
+    Patient room monitoring for presence detection, environmental compliance, and staff efficiency without intrusive surveillance.
+  </Card>
+</CardGrid>
+
+### Smart Building Automation
+
+- **Energy Optimization**: Automatic control of HVAC and lighting based on occupancy, reducing energy waste
+- **Comfort Management**: Maintains optimal temperature and air quality by triggering ventilation and climate control
+- **Security Enhancement**: Intelligent intrusion detection integrated with automated lighting and alert systems
+- **Accessibility**: Voice-free automation for individuals with mobility or communication challenges
+
+### Research & Development
+
+- **Behavioral Studies**: Anonymous data collection for architectural and behavioral research
+- **Environmental Research**: Long-term indoor air quality and climate monitoring
+- **IoT Platform Testing**: Development platform for MQTT infrastructure and data processing pipelines
+
+---
+
+## Getting Started
+
+Ready to build your own Room Activity Scanner? The current implementation provides a foundation for experimentation and customization.
+
+<CardGrid stagger>
+  <Card title="Activity Monitor Firmware" icon="rocket">
+    Get started with the current implementation featuring HLK-LD2420 radar sensor integration, relay control, and MQTT communication.
+
+    [Explore Activity Monitor →](./activity-monitor)
+  </Card>
+  <Card title="Hardware Setup" icon="seti:arduino">
+    Learn about the ESP32-S3 platform, sensor wiring, and hardware configuration for building your own device.
+
+    Documentation in progress
+  </Card>
+  <Card title="Integration Guide" icon="puzzle">
+    Connect your Room Activity Scanner to dashboards, automation systems, and cloud platforms via MQTT.
+
+    Documentation in progress
+  </Card>
+</CardGrid>
+
+---
+
+## Development Roadmap
+
+### Current Status
+
+The project is under active development with core functionality implemented and ready for testing:
+
+- ✅ **HLK-LD2420 Radar Integration**: Presence detection operational
+- ✅ **Relay Control**: Manual and automated device control
+- ✅ **ADC Reading**: Gas sensor data acquisition
+- 🛠 **MQTT Publishing**: Basic functionality working, refinement in progress
+- 🛠 **Sensor Calibration**: Baseline establishment and drift compensation
+
+### Future Enhancements
+
+<Tabs>
+  <TabItem label="Short-Term">
+
+**Complete Sensor Suite Integration**
+- BMP280 environmental sensor (I2C)
+- INMP441 sound monitoring (I2S)
+- Advanced calibration algorithms
+
+**Enhanced Connectivity**
+- Robust MQTT with QoS levels
+- Secure TLS/SSL communication
+- Automatic reconnection and message queuing
+
+  </TabItem>
+
+  <TabItem label="Long-Term">
+
+**Web Dashboard & Analytics**
+- React + FastAPI + MongoDB stack
+- Real-time visualization
+- Historical data analysis
+- Multi-device management
+
+**Machine Learning Integration**
+- Anomaly detection for unusual patterns
+- Predictive alerts
+- Sleep quality analysis
+- Energy optimization through learned behavior
+
+**Advanced Features**
+- Over-the-air (OTA) firmware updates
+- Bluetooth Low Energy (BLE) for offline access
+- Mobile apps (iOS/Android)
+- Multi-room coordination
+
+  </TabItem>
+
+  <TabItem label="Vision">
+
+**Intelligent Health Platform**
+- Continuous health monitoring
+- Integration with medical alert systems
+- Predictive analytics for preventive care
+- HIPAA-compliant data management
+
+**Smart Home Ecosystem**
+- Integration with Home Assistant, Google Home, Alexa
+- Multi-zone automation
+- Energy management optimization
+- Voice control integration
+
+  </TabItem>
+</Tabs>
+
+---
+
+## Technical Foundation
+
+### Development Environment
+
+- **Framework**: ESP-IDF (Espressif IoT Development Framework)
+- **Language**: C programming
+- **Platform**: Ubuntu Linux
+- **Target**: ESP32-S3 (16MB Flash)
+- **Communication**: MQTT protocol
+- **Connectivity**: WiFi 802.11 b/g/n
+
+### Data Format
+
+Sensor data is published in JSON format via MQTT for easy integration:
+
+```json
+{
+  "device_id": "room-scanner-001",
+  "timestamp": "2025-04-10T13:45:00Z",
+  "presence": true,
+  "motion": true,
+  "temperature": 24.3,
+  "pressure": 1012.8,
+  "air_quality": 350,
+  "sound_level": 47
+}
+```
+
+### Open Source
+
+This project is open-source under the **MIT License**, encouraging experimentation, customization, and community contributions.
+
+- **Repository**: [github.com/SiliconWit/room-activity-scan](https://github.com/SiliconWit/room-activity-scan)
+- **Issues**: Report bugs and request features on GitHub
+- **Contributions**: Pull requests welcome!
+
+---
+
+## Resources & Support
+
+### Documentation
+
+- [Activity Monitor Firmware Guide](./activity-monitor) - Current implementation details and testing
+- Hardware Setup Guide - Coming soon
+- Integration & Automation Guide - Coming soon
+
+### Technical References
+
+- [ESP32-S3 Technical Documentation](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/)
+- [MQTT Protocol Specification](http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html)
+- Component datasheets available in project repository
+
+### Community & Support
+
+- **GitHub Issues**: [Report issues and ask questions](https://github.com/SiliconWit/room-activity-scan/issues)
+- **SiliconWit**: [Visit our website](https://siliconwit.com)
+- **Support the Project**: [Donate to SiliconWit](https://siliconwit.com/donate)
+
+---
+
+## About This Project
+
+### Development Team
+
+**Lawrence Langat**
+Mechatronic Engineer Intern
+[@lawrenceegr](https://github.com/lawrenceegr)
+
+**SiliconWit**
+Open-source IoT and embedded systems research
+[github.com/SiliconWit](https://github.com/SiliconWit) | [siliconwit.com](https://siliconwit.com)
+
+### License
+
+This project is open-source and available under the **MIT License**. See the [LICENSE](../LICENSE) file for details.
+
+---
+
+import Copyright from '@/components/Copyright.astro';
+
+<Copyright />
