@@ -97,10 +97,15 @@ An embedded system for monitoring room activity with potential automation capabi
 
 ```bash
 git clone git@github.com:SiliconWit/room-activity-scan.git
-cd room-activity-scan
+cd room-activity-scan/embedded_programming/activity_monitor
 idf.py set-target esp32s3
-idf.py menuconfig  # Set Wi-Fi & MQTT credentials
+idf.py menuconfig
 ```
+
+In `menuconfig`, configure:
+- **Serial flasher config → Flash size** → 16 MB
+- **Serial flasher config → Flash SPI mode** → DIO
+- Set Wi-Fi credentials, MQTT broker details, and other settings as needed
 
 ### 3. Build and Flash
 
@@ -119,6 +124,13 @@ idf.py -p /dev/ttyUSB0 monitor
 
 ## ⚙️ Configuration Options (via `menuconfig`)
 
+### Flash Configuration (Required)
+| Option                      | Value/Description                  |
+|----------------------------|------------------------------------|
+| Flash size                 | **16 MB** (Serial flasher config) |
+| Flash SPI mode             | **DIO** (Serial flasher config)   |
+
+### Application Configuration
 | Option                      | Description                        |
 |----------------------------|------------------------------------|
 | `CONFIG_WIFI_SSID`         | Your Wi-Fi SSID                    |
@@ -156,7 +168,3 @@ Electronics and Firmware Developer
 [@lawrenceegr](https://github.com/lawrenceegr)
 
 ---
-
-## 📄 License
-
-MIT License – use freely with attribution.

@@ -1,3 +1,11 @@
+# ESP-IDF build files
+build/
+sdkconfig
+sdkconfig.old
+*.bin
+*.elf
+*.map
+
 # Prerequisites
 *.d
 
@@ -30,3 +38,21 @@
 *.exe
 *.out
 *.app
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Dependencies
+managed_components/
+dependencies.lock
