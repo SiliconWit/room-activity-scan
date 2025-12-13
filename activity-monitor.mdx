@@ -1,0 +1,1054 @@
+---
+title: Activity Monitor Firmware
+description: Getting started with the HLK-LD2420-based activity monitoring firmware for ESP32-S3
+contributors: "lawrence-langat,sam-macharia"
+pubDate: 2024-12-12
+tags: ["ESP32-S3", "HLK-LD2420", "MQTT", "firmware", "embedded-systems", "IoT"]
+excerpt: "Learn to build, flash, and test the Room Activity Scanner firmware featuring HLK-LD2420 mmWave radar integration, MQTT communication, and relay control for ESP32-S3. Includes complete setup guide, hardware wiring, testing procedures, and troubleshooting for IoT health monitoring applications."
+prev: false
+---
+
+import RoomActivityScanComments from '../../../../components/room-activity-scan/RoomActivityScanComments.astro';
+import TawkWidget from '../../../../components/TawkWidget.astro';
+import UniversalContentContributors from '../../../../components/UniversalContentContributors.astro';
+import Copyright from '../../../../components/Copyright.astro';
+import BionicText from '../../../../components/BionicText.astro';
+import TailwindWrapper from '../../../../components/TailwindWrapper.jsx';
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+import { Card, CardGrid, Badge, Steps, LinkButton } from '@astrojs/starlight/components';
+
+<UniversalContentContributors 
+  contributors={frontmatter.contributors}
+/>
+
+Learn to build, flash, and test the Room Activity Scanner firmware featuring HLK-LD2420 mmWave radar integration, MQTT communication, and relay control for ESP32-S3. Includes complete setup guide, hardware wiring, testing procedures, and troubleshooting for IoT health monitoring applications. #ESP-IDF #HLK-LD2420 #MQTT
+
+## Introduction
+
+The **Activity Monitor** firmware is the current implementation of the Room Activity Scanner project, focusing on **presence detection** using the HLK-LD2420 mmWave radar sensor. This firmware provides a foundation for room activity monitoring with real-time MQTT communication and relay control capabilities.
+
+This guide walks you through setting up, building, flashing, and testing the Activity Monitor firmware on your ESP32-S3 device.
+
+---
+
+## System Architecture
+
+![System Flow Diagram](./images/flowchart.png)
+
+## Currently Implemented Features
+
+<CardGrid>
+  <Card title="HLK-LD2420 Presence Detection" icon="approve-check">
+    **Status**: ✅ Operational
+
+    mmWave radar sensor integration via UART for detecting human presence, measuring distance, and tracking movement with high accuracy.
+  </Card>
+
+  <Card title="Relay Control System" icon="setting">
+    **Status**: ✅ Completed
+
+    GPIO-based relay control with manual and automatic modes for controlling fans, lights, and other appliances based on sensor input.
+  </Card>
+
+  <Card title="ADC Reading (MQ-2 Gas Sensor)" icon="seti:config">
+    **Status**: ✅ Completed
+
+    Analog-to-digital conversion for MQ-2 gas sensor with baseline calibration logic currently in progress for accurate air quality measurements.
+  </Card>
+
+  <Card title="MQTT Communication" icon="rss">
+    **Status**: 🛠 In Progress
+
+    Basic MQTT publishing to broker working. Refinements ongoing for QoS levels, retained messages, and robust reconnection handling.
+  </Card>
+</CardGrid>
+
+### Feature Status Table
+
+| Feature | Status | Implementation Notes |
+|---------|--------|---------------------|
+| **HLK-LD2420 UART Communication** | ✅ Completed | Protocol parser implemented, distance and presence detection operational |
+| **Relay GPIO Control** | ✅ Completed | Manual on/off control and automated triggering based on presence |
+| **MQ-2 ADC Reading** | ✅ Completed | Raw ADC values captured, calibration algorithm in development |
+| **WiFi Connectivity** | ✅ Completed | Station mode with automatic reconnection |
+| **MQTT Publishing** | 🛠 In Progress | Basic publish working, enhancing reliability and features |
+| **MQTT Subscriptions** | 🛠 In Progress | Command reception for relay control being tested |
+| **Sensor Calibration Logic** | 🛠 In Progress | Baseline establishment and drift compensation algorithms |
+| **BMP280 I2C Integration** | 🔲 Not Started | Planned for environmental monitoring |
+| **RCWL-0516 Motion Detection** | 🔲 Not Started | GPIO interrupt-based implementation planned |
+| **INMP441 I2S Audio** | 🔲 Not Started | Sound level monitoring planned |
+| **OTA Firmware Updates** | 🔲 Planned | Future enhancement for remote updates |
+
+---
+
+## Prerequisites
+
+Before you begin, ensure you have the following tools and hardware:
+
+### Hardware Requirements
+
+- **YD-ESP32-S3** development board with **16MB flash** memory
+- **HLK-LD2420** mmWave radar sensor module
+- **MQ-2** gas sensor (optional but recommended)
+- **Relay module** (5V or 3.3V compatible)
+- **USB cable** for programming and power
+- **Breadboard and jumper wires** for prototyping
+
+### Software Requirements
+
+- **Ubuntu Linux** (20.04 LTS or later recommended)
+- **ESP-IDF v5.0 or later** installed and configured
+- **Python 3.8+** (comes with ESP-IDF)
+- **Git** for repository cloning
+- **MQTT Broker**: Mosquitto (local) or cloud service access
+
+### Verify ESP-IDF Installation
+
+Ensure ESP-IDF is properly installed:
+
+```bash
+. $HOME/esp/esp-idf/export.sh
+idf.py --version
+```
+
+You should see output like `ESP-IDF v5.x.x`.
+
+---
+
+## Hardware Setup
+
+### Pin Connections
+
+Connect the sensors and modules to your ESP32-S3 according to this wiring diagram:
+
+#### HLK-LD2420 mmWave Radar (UART)
+
+| HLK-LD2420 Pin | ESP32-S3 Pin | Description |
+|----------------|--------------|-------------|
+| VCC | 5V | Power supply |
+| GND | GND | Ground |
+| TX | GPIO 44 (RX1) | UART transmit to ESP32 receive |
+| RX | GPIO 43 (TX1) | UART receive from ESP32 transmit |
+
+#### MQ-2 Gas Sensor (Analog)
+
+| MQ-2 Pin | ESP32-S3 Pin | Description |
+|----------|--------------|-------------|
+| VCC | 5V | Power supply |
+| GND | GND | Ground |
+| AOUT | GPIO 1 (ADC1_CH0) | Analog output to ADC |
+
+#### Relay Module
+
+| Relay Pin | ESP32-S3 Pin | Description |
+|-----------|--------------|-------------|
+| VCC | 5V | Power supply |
+| GND | GND | Ground |
+| IN | GPIO 21 | Control signal |
+
+**Note**: Pin assignments may be configured via `menuconfig`. Check your specific configuration before wiring.
+
+---
+
+## Installation & Setup
+
+<Steps>
+
+1. **Clone the Repository**
+
+   Clone the Room Activity Scanner repository from GitHub:
+
+   ```bash
+   git clone git@github.com:SiliconWit/room-activity-scan.git
+   cd room-activity-scan/embedded_programming/activity_monitor
+   ```
+
+2. **Set ESP32-S3 Target**
+
+   Configure the build system for the ESP32-S3 architecture:
+
+   ```bash
+   idf.py set-target esp32s3
+   ```
+
+   This downloads necessary toolchain components and configures the build environment.
+
+3. **Configure Project Settings**
+
+   Launch the interactive configuration menu:
+
+   ```bash
+   idf.py menuconfig
+   ```
+
+   **Critical Configuration Items:**
+
+   <Tabs>
+   <TabItem label="Flash Configuration">
+
+   ### Serial flasher config
+
+   - **Flash size**: Set to **16 MB** (required for YD-ESP32-S3)
+   - **Flash SPI mode**: Set to **DIO** (Dual I/O)
+   - **Flash SPI speed**: 80 MHz (recommended)
+   - **After flashing**: Reset after flashing
+
+   </TabItem>
+
+   <TabItem label="WiFi Settings">
+
+   ### WiFi Configuration
+
+   Navigate to: **Example Connection Configuration** or **Application Configuration → WiFi**
+
+   - **WiFi SSID**: Your network name
+   - **WiFi Password**: Your network password
+   - **Maximum retry**: 5 (or as needed)
+
+   </TabItem>
+
+   <TabItem label="MQTT Configuration">
+
+   ### MQTT Settings
+
+   Navigate to: **Application Configuration → MQTT Settings**
+
+   - **MQTT Broker URI**: `mqtt://localhost:1883` (local) or cloud broker URL
+   - **MQTT Username**: (if authentication required)
+   - **MQTT Password**: (if authentication required)
+   - **MQTT Topic Prefix**: `room/scanner` (default)
+
+   </TabItem>
+
+   <TabItem label="GPIO Pins">
+
+   ### GPIO Configuration
+
+   Navigate to: **Application Configuration → GPIO Configuration**
+
+   - **HLK-LD2420 UART TX**: GPIO 43
+   - **HLK-LD2420 UART RX**: GPIO 44
+   - **MQ-2 ADC Channel**: ADC1 Channel 0 (GPIO 1)
+   - **Relay Control GPIO**: GPIO 21
+
+   **Note:** Verify these match your hardware wiring.
+
+   </TabItem>
+   </Tabs>
+
+   Press **S** to save, then **Q** to quit menuconfig.
+
+4. **Build the Firmware**
+
+   Compile the project:
+
+   ```bash
+   idf.py build
+   ```
+
+   Build output is saved to `build/` directory. Look for `activity_monitor.bin`.
+
+5. **Flash to ESP32-S3**
+
+   Connect your ESP32-S3 via USB and flash the firmware:
+
+   ```bash
+   idf.py -p /dev/ttyUSB0 flash
+   ```
+
+   **Note**: Replace `/dev/ttyUSB0` with your actual port (check with `ls /dev/ttyUSB*` or `dmesg | grep tty`).
+
+6. **Monitor Serial Output**
+
+   View real-time logs and debug output:
+
+   ```bash
+   idf.py -p /dev/ttyUSB0 monitor
+   ```
+
+   Press **Ctrl+]** to exit monitor mode.
+
+   **Combined Flash & Monitor** (recommended):
+
+   ```bash
+   idf.py -p /dev/ttyUSB0 flash monitor
+   ```
+
+</Steps>
+
+---
+
+## Testing the Firmware
+
+### Initial Boot Verification
+
+After flashing, monitor the serial output. You should see:
+
+```
+I (328) boot: ESP-IDF v5.x.x
+I (342) boot: Chip Revision: v0.1
+I (356) boot_comm: chip revision: v0.1, min. bootloader chip revision: v0.0
+I (894) wifi:WiFi connected
+I (1024) MQTT: MQTT_EVENT_CONNECTED
+I (1156) HLK_LD2420: Radar initialized successfully
+I (1200) APP: System ready
+```
+
+### Testing HLK-LD2420 Presence Detection
+
+<Tabs>
+  <TabItem label="Presence Test">
+    ### Presence Detection Test
+
+    **Objective**: Verify the radar detects human presence
+
+    **Steps**:
+    1. Position yourself 1-3 meters in front of the sensor
+    2. Remain still (mmWave radar detects stationary humans)
+    3. Monitor serial output
+
+    **Expected Output**:
+    ```
+    I (5234) HLK_LD2420: Target detected at 2.3m
+    I (5456) HLK_LD2420: Presence: YES, Distance: 2.3m
+    ```
+
+    **Troubleshooting**:
+    - No detection: Check UART wiring (TX/RX may be swapped)
+    - Random detections: Adjust sensitivity in sensor configuration
+    - No serial output: Verify UART port configuration in menuconfig
+  </TabItem>
+
+  <TabItem label="Distance Measurement">
+
+    ### Distance Accuracy Test
+
+    **Objective**: Test distance accuracy
+
+    **Steps**:
+    1. Stand at known distances (1m, 2m, 3m) from sensor
+    2. Record reported distance values
+    3. Compare with actual measured distance
+
+    **Expected Accuracy**: ±0.3m at distances up to 5m
+
+    **Serial Output Example**:
+    ```
+    I (7823) HLK_LD2420: Distance: 1.2m (actual: 1.0m)
+    I (8234) HLK_LD2420: Distance: 2.1m (actual: 2.0m)
+    I (8645) HLK_LD2420: Distance: 3.3m (actual: 3.0m)
+    ```
+
+  </TabItem>
+
+  <TabItem label="Absence Detection">
+
+    ### Absence Detection Test
+
+    **Objective**: Verify sensor detects when no one is present
+
+    **Steps**:
+    1. Leave the sensor's detection area (move >5m away or behind obstacles)
+    2. Wait 5-10 seconds for timeout
+    3. Check serial output
+
+    **Expected Output**:
+    ```
+    I (12456) HLK_LD2420: No target detected
+    I (12789) HLK_LD2420: Presence: NO
+    ```
+
+  </TabItem>
+</Tabs>
+
+### Testing Relay Control
+
+<Tabs>
+  <TabItem label="Manual Control">
+
+    ### Manual Relay Control via MQTT
+
+    **Via MQTT Command** (requires MQTT broker setup):
+
+    Publish command to turn relay ON:
+    ```bash
+    mosquitto_pub -h localhost -t "room/scanner/relay/set" -m "ON"
+    ```
+
+    Turn relay OFF:
+    ```bash
+    mosquitto_pub -h localhost -t "room/scanner/relay/set" -m "OFF"
+    ```
+
+    **Expected Behavior**:
+    - Relay clicks audibly
+    - LED indicator changes state
+    - Serial output confirms state change
+
+    **Serial Output**:
+    ```
+    I (45678) RELAY: Command received: ON
+    I (45680) RELAY: Relay state changed to ON
+    ```
+
+  </TabItem>
+
+  <TabItem label="Automatic Control">
+
+    ### Automatic Presence-Based Control
+
+    **Presence-Based Automation** (if enabled in firmware):
+
+    **Test Scenario**:
+    1. Configure relay to activate when presence detected
+    2. Enter sensor detection range
+    3. Verify relay turns ON automatically
+    4. Leave detection range
+    5. Verify relay turns OFF after timeout
+
+    **Configuration** (in code or menuconfig):
+    ```c
+    #define AUTO_RELAY_ENABLED 1
+    #define RELAY_TIMEOUT_SEC 30  // Turn off after 30s absence
+    ```
+
+    **Serial Output**:
+    ```
+    I (56789) AUTO: Presence detected - Relay ON
+    I (87654) AUTO: Absence timeout - Relay OFF
+    ```
+
+  </TabItem>
+
+  <TabItem label="Safety Testing">
+
+    ### Relay Safety & Stress Testing
+
+    **Test Safety Interlocks**:
+
+    **Rapid Toggle Test**:
+    ```bash
+    # Send rapid ON/OFF commands
+    for i in {1..10}; do
+    mosquitto_pub -h localhost -t "room/scanner/relay/set" -m "ON"
+    sleep 0.1
+    mosquitto_pub -h localhost -t "room/scanner/relay/set" -m "OFF"
+    sleep 0.1
+    done
+    ```
+
+    **Expected Behavior**:
+    - Relay should handle commands without lock-up
+    - No unexpected resets or crashes
+    - Commands processed in order
+
+  </TabItem>
+</Tabs>
+
+### Testing MQ-2 Gas Sensor
+
+<Tabs>
+  <TabItem label="Baseline Reading">
+
+    ### Baseline Measurement
+
+    **Objective**: Capture clean air baseline
+
+    **Steps**:
+    1. Ensure sensor is in fresh air (open window)
+    2. Let sensor warm up for 2-3 minutes
+    3. Monitor ADC readings
+
+    **Serial Output**:
+    ```
+    I (12000) MQ2: ADC Raw: 1245
+    I (13000) MQ2: ADC Raw: 1238
+    I (14000) MQ2: ADC Raw: 1251
+    I (15000) MQ2: Baseline established: 1244
+    ```
+
+    **Note**: Initial readings may fluctuate. Baseline stabilizes after warm-up period.
+
+  </TabItem>
+
+  <TabItem label="Gas Detection Test">
+
+    ### Gas Response Test
+
+    **Objective**: Verify sensor response to gas
+
+    **Steps**:
+    1. Introduce test gas source (e.g., alcohol, lighter gas - **be careful!**)
+    2. Hold near sensor (not directly touching)
+    3. Monitor ADC value changes
+    4. Remove gas source
+    5. Verify values return to baseline
+
+    **Expected Behavior**:
+    ```
+    I (20000) MQ2: ADC Raw: 1244 (baseline)
+    I (25000) MQ2: ADC Raw: 2156 (gas detected - increase)
+    I (26000) MQ2: ADC Raw: 2489 (peak response)
+    I (30000) MQ2: ADC Raw: 1567 (recovery)
+    I (35000) MQ2: ADC Raw: 1252 (back to baseline)
+    ```
+
+    **Safety Warning**:
+    - Test in well-ventilated area
+    - Use small amounts of test gas
+    - Never use open flame near sensor during operation
+
+  </TabItem>
+
+  <TabItem label="Calibration Check">
+
+    ### Calibration Verification
+
+    **Objective**: Verify calibration algorithm
+
+    **Current Implementation**: Baseline drift compensation
+
+    **Test Procedure**:
+    1. Record initial baseline
+    2. Run for 24 hours
+    3. Check if baseline auto-adjusts for environmental drift
+
+    **Expected**: Baseline should slowly adjust to compensate for temperature/humidity changes
+
+    **Serial Output**:
+    ```
+    I (00:00) MQ2: Initial baseline: 1244
+    I (01:00) MQ2: Baseline adjusted: 1247
+    I (02:00) MQ2: Baseline adjusted: 1243
+    ```
+
+  </TabItem>
+</Tabs>
+
+### Testing MQTT Communication
+
+<Tabs>
+  <TabItem label="Setup Local Broker">
+
+    ### Mosquitto MQTT Broker Setup
+
+    **Install Mosquitto** (if not already installed):
+
+    ```bash
+    sudo apt update
+    sudo apt install mosquitto mosquitto-clients
+    sudo systemctl start mosquitto
+    sudo systemctl enable mosquitto
+    ```
+
+    **Verify Broker Running**:
+    ```bash
+    sudo systemctl status mosquitto
+    ```
+
+    **Test Broker**:
+    ```bash
+    # Terminal 1: Subscribe
+    mosquitto_sub -h localhost -t "test" -v
+
+    # Terminal 2: Publish
+    mosquitto_pub -h localhost -t "test" -m "Hello MQTT"
+    ```
+
+  </TabItem>
+
+  <TabItem label="Monitor Published Data">
+
+    ### Monitor Sensor Data
+
+    **Subscribe to All Topics**:
+
+    ```bash
+    mosquitto_sub -h localhost -t "room/scanner/#" -v
+    ```
+
+    **Expected Output** (example):
+
+    ```
+    room/scanner/presence {"detected":true,"distance":2.3,"timestamp":1678901234}
+    room/scanner/air_quality {"gas_level":1244,"status":"normal","timestamp":1678901234}
+    room/scanner/relay {"state":"on","auto_mode":true,"timestamp":1678901234}
+    room/scanner/status {"uptime":3600,"wifi_rssi":-45,"free_heap":123456}
+    ```
+
+    **Check Publishing Rate**:
+    - Presence updates: Every 1-2 seconds (configurable)
+    - Air quality: Every 5-10 seconds (configurable)
+    - Status: Every 30 seconds (configurable)
+
+  </TabItem>
+
+  <TabItem label="Test Command Reception">
+
+    ### Test MQTT Commands
+
+    **Send Relay Commands**:
+
+    ```bash
+    # Turn relay ON
+    mosquitto_pub -h localhost -t "room/scanner/relay/set" -m '{"state":"on"}'
+
+    # Turn relay OFF
+    mosquitto_pub -h localhost -t "room/scanner/relay/set" -m '{"state":"off"}'
+
+    # Toggle relay
+    mosquitto_pub -h localhost -t "room/scanner/relay/set" -m '{"action":"toggle"}'
+    ```
+
+    **Monitor ESP32 Response**:
+
+    ```
+    I (45678) MQTT: Message received on topic: room/scanner/relay/set
+    I (45680) MQTT: Payload: {"state":"on"}
+    I (45682) RELAY: Command processed: ON
+    ```
+
+    **Test Configuration Updates** (if implemented):
+
+    ```bash
+    # Update sampling interval
+    mosquitto_pub -h localhost -t "room/scanner/config/set" -m '{"sample_interval":2000}'
+    ```
+
+  </TabItem>
+
+  <TabItem label="Connection Resilience">
+
+    ### Test Connection Reliability
+
+    **Test Reconnection**:
+
+    1. Flash firmware and verify MQTT connected
+    2. Stop Mosquitto broker:
+    ```bash
+    sudo systemctl stop mosquitto
+    ```
+    3. Monitor ESP32 serial output - should show reconnection attempts
+    4. Restart broker:
+    ```bash
+    sudo systemctl start mosquitto
+    ```
+    5. Verify ESP32 automatically reconnects
+
+    **Expected Serial Output**:
+
+    ```
+    I (12000) MQTT: Connection lost - attempting reconnect
+    I (13000) MQTT: Reconnection attempt 1/5
+    I (14000) MQTT: Reconnection attempt 2/5
+    I (20000) MQTT: Reconnected successfully
+    I (20100) MQTT: Resuming data publishing
+    ```
+
+  </TabItem>
+</Tabs>
+
+---
+
+## Data Format & Topics
+
+### Published Topics
+
+| Topic | Payload Format | Frequency | Description |
+|-------|---------------|-----------|-------------|
+| `room/scanner/presence` | `{"detected":bool,"distance":float,"confidence":int}` | 1-2s | Presence detection data |
+| `room/scanner/air_quality` | `{"gas_level":int,"status":string}` | 5-10s | Air quality readings |
+| `room/scanner/relay` | `{"state":string,"auto_mode":bool}` | On change | Relay state updates |
+| `room/scanner/status` | `{"uptime":int,"wifi_rssi":int,"free_heap":int}` | 30s | System health status |
+
+### Subscribed Topics (Commands)
+
+| Topic | Payload Format | Action |
+|-------|---------------|--------|
+| `room/scanner/relay/set` | `{"state":"on"}` or `{"state":"off"}` | Control relay |
+| `room/scanner/config/set` | `{"parameter":"value"}` | Update configuration |
+| `room/scanner/command` | `{"cmd":"reset"}` or `{"cmd":"calibrate"}` | System commands |
+
+### Example Payloads
+
+**Presence Detection**:
+```json
+{
+  "detected": true,
+  "distance": 2.34,
+  "confidence": 87,
+  "timestamp": "2025-04-10T14:32:15Z"
+}
+```
+
+**Air Quality**:
+```json
+{
+  "gas_level": 1244,
+  "status": "normal",
+  "baseline": 1240,
+  "timestamp": "2025-04-10T14:32:15Z"
+}
+```
+
+**System Status**:
+```json
+{
+  "uptime": 3600,
+  "wifi_rssi": -45,
+  "free_heap": 156789,
+  "firmware_version": "1.0.0",
+  "timestamp": "2025-04-10T14:32:15Z"
+}
+```
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+<Tabs>
+  <TabItem label="Flash Failures">
+
+    ### Flashing Issues
+
+    **Problem**: `A fatal error occurred: Failed to connect to ESP32-S3`
+
+    **Solutions**:
+    1. **Hold BOOT button** while connecting USB
+    2. **Check USB cable** - some cables are power-only
+    3. **Verify port**: `ls /dev/ttyUSB*` or `ls /dev/ttyACM*`
+    4. **User permissions**: `sudo usermod -a -G dialout $USER` (logout/login required)
+    5. **Try different USB port** - some ports have power issues
+
+    **Problem**: `Flash size mismatch`
+
+    **Solution**: Set flash size to 16MB in menuconfig → Serial flasher config
+
+  </TabItem>
+
+  <TabItem label="WiFi Connection">
+
+    ### WiFi Connection Problems
+
+    **Problem**: WiFi not connecting
+
+    **Solutions**:
+    1. **Verify credentials** in menuconfig
+    2. **Check 2.4GHz network** - ESP32 doesn't support 5GHz
+    3. **SSID visibility** - hidden networks may need special configuration
+    4. **Signal strength** - try moving closer to router
+    5. **Router compatibility** - some enterprise networks require special auth
+
+    **Check logs**:
+    ```
+    E (5000) wifi:Failed to connect to SSID:YourNetwork
+    ```
+
+    **Debug command**:
+    ```bash
+    idf.py menuconfig
+    # Enable: Component config → ESP32-specific → WiFi debug log
+    ```
+
+  </TabItem>
+
+  <TabItem label="MQTT Issues">
+
+    ### MQTT Connection Problems
+
+    **Problem**: MQTT not connecting
+
+    **Solutions**:
+    1. **Verify broker running**: `sudo systemctl status mosquitto`
+    2. **Check broker URI** in menuconfig (use IP instead of localhost if needed)
+    3. **Test broker locally**: `mosquitto_sub -h localhost -t "test"`
+    4. **Firewall**: Ensure port 1883 is open
+    5. **Authentication**: Verify username/password if broker requires auth
+
+    **Problem**: Data not publishing
+
+    **Solutions**:
+    1. **Check topic subscription**: `mosquitto_sub -h localhost -t "#" -v`
+    2. **Verify WiFi connected** before MQTT attempts
+    3. **Increase log verbosity** in menuconfig
+    4. **Check QoS settings** - start with QoS 0 for testing
+
+  </TabItem>
+
+  <TabItem label="Sensor Issues">
+
+    ### Sensor Troubleshooting
+
+    **HLK-LD2420 Not Detecting**:
+    - Swap TX/RX connections (common wiring error)
+    - Verify 5V power supply (insufficient power causes erratic behavior)
+    - Check UART configuration (baud rate, pins)
+    - Sensor needs clear line of sight
+
+    **MQ-2 Incorrect Readings**:
+    - Allow 2-3 minute warm-up time
+    - Check VCC connection (needs stable 5V)
+    - Verify ADC channel configuration
+    - Calibrate in fresh air environment
+
+    **Relay Not Responding**:
+    - Verify GPIO pin number in configuration
+    - Check relay module VCC (3.3V or 5V requirement)
+    - Test GPIO directly: `gpio_set_level(GPIO_NUM_21, 1);`
+    - Check relay LED indicator for control signal
+
+  </TabItem>
+</Tabs>
+
+### Debug Logging
+
+Enable verbose logging for troubleshooting:
+
+```bash
+idf.py menuconfig
+# Navigate to: Component config → Log output
+# Set default log level to: Debug or Verbose
+```
+
+**Component-Specific Logging**:
+
+```c
+// In your code, set individual component log levels:
+esp_log_level_set("HLK_LD2420", ESP_LOG_DEBUG);
+esp_log_level_set("MQTT", ESP_LOG_VERBOSE);
+esp_log_level_set("wifi", ESP_LOG_DEBUG);
+```
+
+---
+
+## Future Planned Features
+
+Based on the project roadmap, the following enhancements are planned for future firmware versions:
+
+### Short-Term Additions
+
+<CardGrid>
+  <Card title="BMP280 Environmental Sensor" icon="seti:config">
+    **Priority**: High
+
+    I2C integration for temperature and atmospheric pressure monitoring. Enables comfort optimization and weather correlation.
+
+    **Implementation Plan**:
+    - I2C driver integration
+    - Temperature/pressure reading
+    - Calibration and filtering
+    - MQTT data publishing
+  </Card>
+
+  <Card title="RCWL-0516 Motion Detection" icon="approve-check">
+    **Priority**: Medium
+
+    GPIO interrupt-based Doppler motion sensor for complementary motion detection alongside mmWave radar.
+
+    **Implementation Plan**:
+    - GPIO interrupt configuration
+    - Debounce logic
+    - Integration with presence detection
+    - Activity pattern tracking
+  </Card>
+
+  <Card title="INMP441 Sound Monitoring" icon="rss">
+    **Priority**: Medium
+
+    I2S digital audio interface for ambient sound level measurement and noise analysis.
+
+    **Implementation Plan**:
+    - I2S interface configuration
+    - Audio sampling and buffering
+    - dB level calculation
+    - Sound event detection
+  </Card>
+
+  <Card title="Enhanced MQTT Features" icon="rocket">
+    **Priority**: High
+
+    Robust MQTT implementation with advanced features for production deployment.
+
+    **Features**:
+    - QoS 1 and 2 support
+    - Retained messages for state
+    - Last Will and Testament
+    - TLS/SSL encryption
+    - Message queuing during disconnection
+  </Card>
+</CardGrid>
+
+### Long-Term Vision
+
+<Tabs>
+  <TabItem label="Web Dashboard">
+
+    ### Full-Stack Web Application
+
+    **Technology Stack**:
+    - **Frontend**: React.js with real-time WebSocket updates
+    - **Backend**: FastAPI (Python) RESTful API
+    - **Database**: MongoDB for time-series data storage
+    - **Visualization**: Chart.js or D3.js for graphs
+
+    **Features**:
+    - Real-time sensor visualization
+    - Historical data analysis and trends
+    - Device configuration management
+    - Alert rule configuration
+    - Multi-device monitoring
+    - User authentication and access control
+
+    **Current Status**: 🔲 Planned
+
+  </TabItem>
+
+  <TabItem label="Machine Learning">
+
+    ### Intelligent Pattern Recognition
+
+    **Capabilities**:
+    - **Anomaly Detection**: Identify unusual activity patterns
+    - **Predictive Alerts**: Forecast potential issues based on trends
+    - **Sleep Quality Analysis**: Analyze motion and sound for sleep assessment
+    - **Energy Optimization**: Learn usage patterns for efficient automation
+
+    **Implementation Approach**:
+    - **Edge ML**: TensorFlow Lite on ESP32-S3 for real-time inference
+    - **Cloud Training**: Collect data and train models in cloud
+    - **Model Deployment**: OTA updates for improved models
+
+    **Use Cases**:
+    - Elderly fall detection
+    - Unusual absence alerts
+    - Sleep disorder screening
+    - Optimized HVAC scheduling
+
+    **Current Status**: 🔲 Research phase
+
+  </TabItem>
+
+  <TabItem label="Mobile Application">
+
+    ### iOS and Android Native Apps
+
+    **Features**:
+    - Real-time device monitoring
+    - Push notifications for alerts
+    - Remote relay control
+    - Device configuration
+    - Historical data viewing
+    - Geofencing for location-based automation
+
+    **Technology**:
+    - **iOS**: Swift/SwiftUI
+    - **Android**: Kotlin/Jetpack Compose
+    - **Communication**: MQTT over WebSocket or REST API
+
+    **Current Status**: 🔲 Planned
+
+  </TabItem>
+
+  <TabItem label="Advanced Features">
+
+    ### Advanced System Capabilities
+
+    **Over-The-Air (OTA) Updates**
+    - Secure firmware updates without physical access
+    - Rollback capability for failed updates
+    - Staged deployment for testing
+    - **Status**: 🔲 Planned
+
+    **Bluetooth Low Energy (BLE)**
+    - Offline configuration and data retrieval
+    - Mobile app connectivity without WiFi
+    - Backup communication channel
+    - **Status**: 🔲 Planned
+
+    **Multi-Room System**
+    - Centralized monitoring of multiple rooms
+    - Inter-device communication
+    - Coordinated automation
+    - Aggregate analytics
+    - **Status**: 🔲 Future vision
+
+    **Power Optimization**
+    - Deep sleep modes
+    - Battery operation support
+    - Solar charging integration
+    - **Status**: 🔲 Research
+
+  </TabItem>
+</Tabs>
+
+---
+
+## Contributing to Development
+
+This project is under active development and welcomes contributions!
+
+### Areas Needing Help
+
+- **Sensor Integration**: BMP280, RCWL-0516, INMP441 drivers
+- **MQTT Enhancements**: QoS, TLS/SSL, message queuing
+- **Calibration Algorithms**: Advanced MQ-2 calibration and drift compensation
+- **Testing**: Hardware testing, edge case scenarios
+- **Documentation**: Wiring diagrams, tutorials, use case examples
+
+### How to Contribute
+
+1. **Fork the repository** on GitHub
+2. **Create a feature branch**: `git checkout -b feature/your-feature-name`
+3. **Make your changes** with clear commit messages
+4. **Test thoroughly** on actual hardware
+5. **Submit a pull request** with description of changes
+
+### Development Guidelines
+
+- Follow ESP-IDF coding standards
+- Add comments for complex logic
+- Update documentation for new features
+- Test on hardware before submitting
+- Include serial output examples for debugging
+
+---
+
+## Resources & References
+
+### Documentation
+
+- [ESP-IDF Programming Guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/)
+- [HLK-LD2420 Datasheet](https://www.hlktech.net/index.php?id=988)
+- [MQTT v3.1.1 Specification](http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html)
+- [MQ-2 Calibration Guide](https://www.pololu.com/file/0J309/MQ2.pdf)
+
+### Tools
+
+- [Mosquitto MQTT Broker](https://mosquitto.org/)
+- [MQTT Explorer](http://mqtt-explorer.com/) - GUI for MQTT debugging
+- [ESP-IDF Tools](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/)
+
+### Community
+
+- [GitHub Issues](https://github.com/SiliconWit/room-activity-scan/issues) - Bug reports and feature requests
+- [SiliconWit Website](https://siliconwit.com) - Company information and other projects
+
+---
+
+## Next Steps
+
+Once you have the Activity Monitor firmware running successfully:
+
+1. **Experiment with configurations** - Adjust sampling rates, thresholds, and automation rules
+2. **Integrate with dashboard** - Set up Node-RED, Grafana, or Home Assistant for visualization
+3. **Collect long-term data** - Run for days/weeks to understand typical patterns
+4. **Contribute improvements** - Share your enhancements with the community
+5. **Explore additional sensors** - Add BMP280, INMP441, or other sensors
+
+---
+
+<RoomActivityScanComments />
+<TawkWidget />
+<Copyright />
